@@ -86,19 +86,20 @@ class Implementation extends BaseImplementation
         } elseif ($response instanceof MethodFault) {
 
             // handle specific exception correctly
-            if ($response->getException() instanceof MethodNotExists) {
-                $code = self::ERROR_METHOD_NOT_FOUND;
-                $message = $response->getMessage();
-            } elseif ($response->getException() instanceof InvalidParameters) {
-                $code = self::ERROR_INVALID_PARAMETERS;
-                $message = $response->getMessage();
-            } elseif ($response->getException() instanceof RpcException) {
-                $code = $response->getCode();
+            if ($response->getException() instanceof RpcException) {
+                if ($response->getException() instanceof MethodNotExists) {
+                    $code = self::ERROR_METHOD_NOT_FOUND;
+                } elseif ($response->getException() instanceof InvalidParameters) {
+                    $code = self::ERROR_INVALID_PARAMETERS;
+                } else {
+                    $code = $response->getCode();
+                }
+
                 $message = $response->getMessage();
             } else {
                 // any other exception that is not extended from RpcException cannot be displayed as it may be security issue
                 $code = self::ERROR_SERVER_ERROR;
-                $message = 'An unexpected occured during handling the request,';
+                $message = 'An unexpected error occured during handling the request.';
             }
 
             $data['error'] = array('code' => $code, 'message' => $message);

@@ -13,6 +13,7 @@
 namespace Seven\RpcBundle\Rpc;
 
 use Exception;
+use Psr\Log\LoggerInterface;
 use Seven\RpcBundle\Exception\InvalidParameters;
 use Seven\RpcBundle\Exception\MethodNotExists;
 use Seven\RpcBundle\Rpc\Method\MethodCall;
@@ -28,11 +29,26 @@ class Server implements ServerInterface
     protected $handlers;
 
     /**
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    /**
      * @param Implementation $impl
      */
     public function __construct(Implementation $impl)
     {
         $this->impl = $impl;
+    }
+
+    public function getLogger()
+    {
+        return $this->logger;
+    }
+
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
     }
 
     /**
@@ -46,6 +62,12 @@ class Server implements ServerInterface
             $methodCall = $this->impl->createMethodCall($request);
             $methodResponse = $this->_handle($methodCall);
         } catch (\Exception $e) {
+
+            // log exception
+            if (null !== $this->logger) {
+                $this->logger->error($e);
+            }
+
             $methodResponse = new MethodFault($e);
         }
 

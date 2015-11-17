@@ -12,6 +12,8 @@
 
 namespace Seven\RpcBundle\Exception;
 
-class InvalidRpcContent extends  RpcException
+use Exception;
+
+class RpcException extends Exception
 {
 }

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of the Symfony bundle Seven/Rpc.
  *
@@ -14,20 +15,20 @@ namespace Seven\RpcBundle\JsonRpc;
 use Seven\RpcBundle\Exception\Fault;
 use Seven\RpcBundle\Exception\InvalidJsonRpcContent;
 use Seven\RpcBundle\Exception\InvalidJsonRpcVersion;
+use Seven\RpcBundle\Exception\InvalidParameters;
+use Seven\RpcBundle\Exception\MethodNotExists;
+use Seven\RpcBundle\Exception\RpcException;
 use Seven\RpcBundle\Exception\UnknownMethodResponse;
 use Seven\RpcBundle\Rpc\Implementation as BaseImplementation;
 use Seven\RpcBundle\Rpc\Method\MethodCall;
-use Seven\RpcBundle\Rpc\Method\MethodResponse;
 use Seven\RpcBundle\Rpc\Method\MethodFault;
+use Seven\RpcBundle\Rpc\Method\MethodResponse;
 use Seven\RpcBundle\Rpc\Method\MethodReturn;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Seven\RpcBundle\Exception\MethodNotExists;
-use Seven\RpcBundle\Exception\InvalidParameters;
 
 class Implementation extends BaseImplementation
 {
-
     const ERROR_PARSING            = -32700;
     const ERROR_INVALID_REQUEST    = -32600;
     const ERROR_METHOD_NOT_FOUND   = -32601;
@@ -36,12 +37,13 @@ class Implementation extends BaseImplementation
     const ERROR_SERVER_ERROR       = -32000;
 
     /**
-     * @param  Request                                          $request
+     * @param Request $request
+     *
      * @return mixed|MethodCall
+     *
      * @throws \Seven\RpcBundle\Exception\InvalidJsonRpcVersion
      * @throws \Seven\RpcBundle\Exception\InvalidJsonRpcContent
      */
-
     public function createMethodCall(Request $request)
     {
         $content = $request->getContent();
@@ -67,11 +69,12 @@ class Implementation extends BaseImplementation
     }
 
     /**
-     * @param  MethodResponse                                   $response
+     * @param MethodResponse $response
+     *
      * @return Response
+     *
      * @throws \Seven\RpcBundle\Exception\UnknownMethodResponse
      */
-
     public function createHttpResponse(MethodResponse $response)
     {
         $data = array(
@@ -85,15 +88,22 @@ class Implementation extends BaseImplementation
             // handle specific exception correctly
             if ($response->getException() instanceof MethodNotExists) {
                 $code = self::ERROR_METHOD_NOT_FOUND;
+                $message = $response->getMessage();
             } elseif ($response->getException() instanceof InvalidParameters) {
                 $code = self::ERROR_INVALID_PARAMETERS;
-            } else {
+                $message = $response->getMessage();
+            } elseif ($response->getException() instanceof RpcException) {
                 $code = $response->getCode();
+                $message = $response->getMessage();
+            } else {
+                // any other exception that is not extended from RpcException cannot be displayed as it may be security issue
+                $code = self::ERROR_SERVER_ERROR;
+                $message = 'An unexpected occured during handling the request,';
             }
 
-            $data['error'] = array('code' => $code, 'message' => $response->getMessage());
+            $data['error'] = array('code' => $code, 'message' => $message);
         } else {
-            throw new UnknownMethodResponse("Unknown MethodResponse instance");
+            throw new UnknownMethodResponse('Unknown MethodResponse instance');
         }
 
         if ($response->getCallId()) {
@@ -104,12 +114,13 @@ class Implementation extends BaseImplementation
     }
 
     /**
-     * @param  Response                                         $response
+     * @param Response $response
+     *
      * @return MethodFault|MethodResponse|MethodReturn
+     *
      * @throws \Seven\RpcBundle\Exception\InvalidJsonRpcVersion
      * @throws \Seven\RpcBundle\Exception\InvalidJsonRpcContent
      */
-
     public function createMethodResponse(Response $response)
     {
         $content = $response->getContent();
@@ -144,25 +155,25 @@ class Implementation extends BaseImplementation
     }
 
     /**
-     * @param  MethodCall $call
+     * @param MethodCall $call
+     *
      * @return Request
      */
-
     public function createHttpRequest(MethodCall $call)
     {
         $data = array(
             'jsonrpc' => '2.0',
             'method'  => $call->getMethodName(),
-            'params'  => $call->getParameters()
+            'params'  => $call->getParameters(),
         );
 
-        if($call->getCallId())
+        if ($call->getCallId()) {
             $data['id'] = $call->getCallId();
+        }
 
         $httpRequest = new Request(array(), array(), array(), array(), array(), array(), json_encode($data));
-        $httpRequest->headers->add(array("content-type" => "text/json"));
+        $httpRequest->headers->add(array('content-type' => 'text/json'));
 
         return $httpRequest;
     }
-
 }

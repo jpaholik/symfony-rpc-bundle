@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of the Symfony bundle Seven/Rpc.
  *
@@ -10,15 +11,16 @@
  */
 
 namespace Seven\RpcBundle\Rpc;
-use Seven\RpcBundle\Exception\MethodNotExists;
-use Seven\RpcBundle\Rpc\Method\MethodReturn;
-use Seven\RpcBundle\Rpc\Method\MethodFault;
-use Seven\RpcBundle\Rpc\Method\MethodCall;
-use Seven\RpcBundle\Rpc\Method\MethodResponse;
+
 use Exception;
+use Seven\RpcBundle\Exception\InvalidParameters;
+use Seven\RpcBundle\Exception\MethodNotExists;
+use Seven\RpcBundle\Rpc\Method\MethodCall;
+use Seven\RpcBundle\Rpc\Method\MethodFault;
+use Seven\RpcBundle\Rpc\Method\MethodResponse;
+use Seven\RpcBundle\Rpc\Method\MethodReturn;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Seven\RpcBundle\Exception\InvalidParameters;
 
 class Server implements ServerInterface
 {
@@ -28,17 +30,16 @@ class Server implements ServerInterface
     /**
      * @param Implementation $impl
      */
-
     public function __construct(Implementation $impl)
     {
         $this->impl = $impl;
     }
 
     /**
-     * @param  Request  $request
+     * @param Request $request
+     *
      * @return Response
      */
-
     public function handle(Request $request)
     {
         try {
@@ -52,16 +53,17 @@ class Server implements ServerInterface
     }
 
     /**
-     * @param  MethodCall     $methodCall
+     * @param MethodCall $methodCall
+     *
      * @return MethodResponse
      */
-
     protected function _handle(MethodCall $methodCall)
     {
         $response = $this->call($methodCall->getMethodName(), $methodCall->getParameters());
 
-        if(!($response instanceof MethodResponse))
+        if (!($response instanceof MethodResponse)) {
             $response = new MethodReturn($response);
+        }
 
         return $response;
     }
@@ -69,10 +71,11 @@ class Server implements ServerInterface
     /**
      * @param $method
      * @param $parameters
+     *
      * @throws MethodNotExists
+     *
      * @return mixed
      */
-
     public function call($method, $parameters)
     {
         if ($this->hasHandler($method) && is_callable($callback = $this->getHandler($method))) {
@@ -104,7 +107,7 @@ class Server implements ServerInterface
      * Prepare parameters.
      *
      * @param callable $callback
-     * @param array $parameters
+     * @param array    $parameters
      *
      * @return array
      *
@@ -134,15 +137,23 @@ class Server implements ServerInterface
             return $parameters;
         }
 
+        // convert underscore and dash parameters to camelCase naming conventions
+        $psrParams = array();
+        foreach ($parameters as $key => $value) {
+            $key = lcfirst(str_replace(' ', '', ucwords(strtr($key, array('_' => ' ', '-' => ' ')))));
+            $psrParams[$key] = $value;
+        }
+
+        // map named parameters in correct order
         $newParams = array();
         foreach ($reflParams as $reflParam) {
             /* @var $reflParam \ReflectionParameter */
             $name = $reflParam->name;
-            if (!isset($parameters[$reflParam->name]) && !$reflParam->isOptional()) {
+            if (!isset($psrParams[$reflParam->name]) && !$reflParam->isOptional()) {
                 throw new InvalidParameters("Parameter '{$name}' is missing.");
             }
-            if (isset($parameters[$reflParam->name])) {
-                $newParams[] = $parameters[$reflParam->name];
+            if (isset($psrParams[$reflParam->name])) {
+                $newParams[] = $psrParams[$reflParam->name];
             } else {
                 $newParams[] = null;
             }
@@ -154,9 +165,9 @@ class Server implements ServerInterface
     /**
      * @param $callback
      * @param $parameters
+     *
      * @return mixed
      */
-
     protected function _call($callback, $parameters)
     {
         return call_user_func_array($callback, $parameters);
@@ -165,15 +176,17 @@ class Server implements ServerInterface
     /**
      * @param $name
      * @param $handler
-     * @param  bool      $force
+     * @param bool $force
+     *
      * @throws Exception
+     *
      * @return Server
      */
-
     public function addHandler($name, $handler, $force = false)
     {
-        if(isset($this->handlers[$name]) && !$force)
+        if (isset($this->handlers[$name]) && !$force) {
             throw new Exception("The '{$name}' handler already exists");
+        }
         $this->handlers[$name] = $handler;
 
         return $this;
@@ -181,9 +194,9 @@ class Server implements ServerInterface
 
     /**
      * @param $name
+     *
      * @return mixed
      */
-
     public function hasHandler($name)
     {
         return isset($this->handlers[$name]);
@@ -191,16 +204,16 @@ class Server implements ServerInterface
 
     /**
      * @param $name
+     *
      * @return bool
      */
-
     public function getHandler($name)
     {
         if (!$this->hasHandler($name)) {
             return false;
         }
         if (is_string($this->handlers[$name])) {
-            $this->handlers[$name] = new $this->handlers[$name];
+            $this->handlers[$name] = new $this->handlers[$name]();
         }
 
         return $this->handlers[$name];
@@ -208,14 +221,13 @@ class Server implements ServerInterface
 
     /**
      * @param $name
+     *
      * @return Server
      */
-
     public function removeHandler($name)
     {
         unset($this->handlers[$name]);
 
         return $this;
     }
-
 }

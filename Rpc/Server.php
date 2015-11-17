@@ -18,6 +18,7 @@ use Seven\RpcBundle\Rpc\Method\MethodResponse;
 use Exception;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Seven\RpcBundle\Exception\InvalidParameters;
 
 class Server implements ServerInterface
 {
@@ -75,16 +76,79 @@ class Server implements ServerInterface
     public function call($method, $parameters)
     {
         if ($this->hasHandler($method) && is_callable($callback = $this->getHandler($method))) {
-            return $this->_call($callback, $parameters);
+            return $this->_call($callback, $this->prepareParameters($callback, $parameters));
         } elseif (strpos($method, '.') !== false) {
             list($handlerName, $methodName) = explode('.', $method, 2);
             if ($this->hasHandler($handlerName)) {
                 if (is_callable($callback = array($this->getHandler($handlerName), $methodName))) {
-                    return $this->_call($callback, $parameters);
+                    return $this->_call($callback, $this->prepareParameters($callback, $parameters));
                 }
             }
         }
         throw new MethodNotExists("Method '{$method}' is not defined");
+    }
+
+    /**
+     * Returns true if variable is an associative array.
+     *
+     * @param array $arr
+     *
+     * @return bool
+     */
+    protected function isAssociative(array $arr)
+    {
+        return array_keys($arr) !== range(0, count($arr) - 1);
+    }
+
+    /**
+     * Prepare parameters.
+     *
+     * @param callable $callback
+     * @param array $parameters
+     *
+     * @return array
+     *
+     * @throws InvalidParameters
+     */
+    protected function prepareParameters($callback, array $parameters)
+    {
+        if (is_array($callback)) {
+            $refl = new \ReflectionMethod($callback[0], $callback[1]);
+        } else {
+            $refl = new \ReflectionFunction($callback);
+        }
+
+        $reflParams = $refl->getParameters();
+
+        $paramCount = count($parameters);
+        if (!($paramCount >= $refl->getNumberOfRequiredParameters()
+            && $paramCount <= $refl->getNumberOfParameters())
+        ) {
+            throw new InvalidParameters(
+                sprintf('Invalid number of parameters. %d given but %d are required of %d total.',
+                $paramCount, $refl->getNumberOfRequiredParameters(), $refl->getNumberOfParameters())
+            );
+        }
+
+        if (!$this->isAssociative($parameters)) {
+            return $parameters;
+        }
+
+        $newParams = array();
+        foreach ($reflParams as $reflParam) {
+            /* @var $reflParam \ReflectionParameter */
+            $name = $reflParam->name;
+            if (!isset($parameters[$reflParam->name]) && !$reflParam->isOptional()) {
+                throw new InvalidParameters("Parameter '{$name}' is missing.");
+            }
+            if (isset($parameters[$reflParam->name])) {
+                $newParams[] = $parameters[$reflParam->name];
+            } else {
+                $newParams[] = null;
+            }
+        }
+
+        return $newParams;
     }
 
     /**

@@ -22,6 +22,8 @@ use Seven\RpcBundle\Rpc\Method\MethodFault;
 use Seven\RpcBundle\Rpc\Method\MethodReturn;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Seven\RpcBundle\Exception\MethodNotExists;
+use Seven\RpcBundle\Exception\InvalidParameters;
 
 class Implementation extends BaseImplementation
 {
@@ -79,7 +81,17 @@ class Implementation extends BaseImplementation
         if ($response instanceof MethodReturn) {
             $data['result'] = $response->getReturnValue();
         } elseif ($response instanceof MethodFault) {
-            $data['error'] = array('code' => $response->getCode(), 'message' => $response->getMessage());
+
+            // handle specific exception correctly
+            if ($response->getException() instanceof MethodNotExists) {
+                $code = self::ERROR_METHOD_NOT_FOUND;
+            } elseif ($response->getException() instanceof InvalidParameters) {
+                $code = self::ERROR_INVALID_PARAMETERS;
+            } else {
+                $code = $response->getCode();
+            }
+
+            $data['error'] = array('code' => $code, 'message' => $response->getMessage());
         } else {
             throw new UnknownMethodResponse("Unknown MethodResponse instance");
         }

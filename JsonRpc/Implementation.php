@@ -139,7 +139,8 @@ class Implementation extends BaseImplementation
             throw new InvalidJsonRpcVersion('The JSON-RPC response version is not supported');
         }
 
-        if (isset($data['result'])) {
+        // isset($data['result']) return false if  result===null, we should also check the key existence with array_key_exists
+        if (isset($data['result']) || array_key_exists('result', $data)) {
             return new MethodReturn($data['result']);
         } elseif (isset($data['error'])) {
             if (!isset($data['error']['message'])) {

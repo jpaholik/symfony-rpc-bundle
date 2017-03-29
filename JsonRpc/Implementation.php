@@ -111,7 +111,7 @@ class Implementation extends BaseImplementation
             $data['id'] = $response->getCallId();
         }
 
-        return new Response(json_encode($data), 200, array('content-type' => 'text/json'));
+        return new Response(json_encode($data), 200, array('content-type' => 'application/json'));
     }
 
     /**
@@ -174,7 +174,7 @@ class Implementation extends BaseImplementation
         }
 
         $httpRequest = new Request(array(), array(), array(), array(), array(), array(), json_encode($data));
-        $httpRequest->headers->add(array('content-type' => 'text/json'));
+        $httpRequest->headers->add(array('content-type' => 'application/json'));
 
         return $httpRequest;
     }

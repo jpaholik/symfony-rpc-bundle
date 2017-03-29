@@ -93,7 +93,7 @@ class ImplementationMethodCallTest extends PHPUnit_Framework_TestCase
         $httpRequest = $impl->createHttpRequest($rpcCall);
 
         $this->assertEquals($rawRequestData, $httpRequest->getContent());
-        $this->assertEquals("text/json", $httpRequest->headers->get('Content-Type'));
+        $this->assertEquals("application/json", $httpRequest->headers->get('Content-Type'));
     }
 
     public function providerPackingCall()

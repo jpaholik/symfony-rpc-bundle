@@ -16,4 +16,25 @@ use Exception;
 
 class RpcException extends Exception
 {
+    private $data;
+
+    /**
+     * Set additional information about the error.
+     *
+     * @param mixed $data
+     */
+    public function setData($data)
+    {
+        $this->data = $data;
+    }
+
+    /**
+     * Get additional information about the error.
+     *
+     * @return mixed
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
 }

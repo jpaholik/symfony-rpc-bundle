@@ -103,6 +103,11 @@ class Implementation extends BaseImplementation
             }
 
             $data['error'] = array('code' => $code, 'message' => $message);
+            
+            // Add additional information about the error.
+            if ($response->getException() instanceof RpcException && null!==$response->getException()->getData()) {
+                $data['error']['data'] = $response->getException()->getData();
+            }
         } else {
             throw new UnknownMethodResponse('Unknown MethodResponse instance');
         }
@@ -150,7 +155,12 @@ class Implementation extends BaseImplementation
                 throw new InvalidJsonRpcContent('The JSON-RPC fault code is not passed');
             }
 
-            return new MethodFault(new Fault($data['error']['message'], $data['error']['code']));
+            $exception = new Fault($data['error']['message'], $data['error']['code']);
+            if (isset($data['error']['data'])) {
+                $exception->setData($data['error']['data']);
+            }
+
+            return new MethodFault($exception);
         }
 
         throw new InvalidJsonRpcContent('The JSON-RPC response must have result or error properties');

@@ -15,10 +15,15 @@ use Seven\RpcBundle\Rpc\Method\MethodCall;
 use Seven\RpcBundle\Rpc\Method\MethodResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Seven\RpcBundle\Rpc\Server;
 
 // @codeCoverageIgnoreStart
 abstract class Implementation
 {
+
+    const ERROR_STATUS_CODE = 500;
+    const BAD_REQUEST_STATUS_CODE = 400;
+    const NON_EXIST_STATUS_CODE = 404;
 
     /**
      * @param  Request $request
@@ -28,7 +33,7 @@ abstract class Implementation
     abstract public function createMethodCall(Request $request);
 
     /**
-     * @param  Response       $response
+     * @param  Response $response
      * @return MethodResponse
      */
 
@@ -36,10 +41,11 @@ abstract class Implementation
 
     /**
      * @param  MethodResponse $response
+     * @param int $statusCode
      * @return Response
      */
 
-    abstract public function createHttpResponse(MethodResponse $response);
+    abstract public function createHttpResponse(MethodResponse $response, $statusCode = Server::HTTP_SUCCESS_STATUS);
 
     /**
      * @param  MethodCall $call

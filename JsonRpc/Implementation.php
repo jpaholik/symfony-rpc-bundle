@@ -26,6 +26,7 @@ use Seven\RpcBundle\Rpc\Method\MethodResponse;
 use Seven\RpcBundle\Rpc\Method\MethodReturn;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Seven\RpcBundle\Rpc\Server;
 
 class Implementation extends BaseImplementation
 {
@@ -48,17 +49,17 @@ class Implementation extends BaseImplementation
     {
         $content = $request->getContent();
         if (empty($content)) {
-            throw new InvalidJsonRpcContent('The JSON-RPC request is empty', self::ERROR_INVALID_REQUEST);
+            throw new InvalidJsonRpcContent('The JSON-RPC request is empty', self::ERROR_INVALID_REQUEST, self::BAD_REQUEST_STATUS_CODE);
         }
 
         $data = json_decode($content, true);
 
         if (is_null($data)) {
-            throw new InvalidJsonRpcContent('The JSON-RPC call is not valid', self::ERROR_PARSING);
+            throw new InvalidJsonRpcContent('The JSON-RPC call is not valid', self::ERROR_PARSING, self::ERROR_STATUS_CODE);
         }
 
         if (empty($data['jsonrpc']) || version_compare($data['jsonrpc'], '2.0', '<')) {
-            throw new InvalidJsonRpcVersion('The JSON-RPC call version is not supported', self::ERROR_SERVER_ERROR);
+            throw new InvalidJsonRpcVersion('The JSON-RPC call version is not supported', self::ERROR_SERVER_ERROR, self::ERROR_INVALID_REQUEST);
         }
 
         if (empty($data['method']) || !isset($data['params'])) {
@@ -71,11 +72,12 @@ class Implementation extends BaseImplementation
     /**
      * @param MethodResponse $response
      *
+     * @param int $statusCode
      * @return Response
      *
-     * @throws \Seven\RpcBundle\Exception\UnknownMethodResponse
+     * @throws UnknownMethodResponse
      */
-    public function createHttpResponse(MethodResponse $response)
+    public function createHttpResponse(MethodResponse $response, $statusCode = Server::HTTP_SUCCESS_STATUS)
     {
         $data = array(
             'jsonrpc' => '2.0',
@@ -116,7 +118,7 @@ class Implementation extends BaseImplementation
             $data['id'] = $response->getCallId();
         }
 
-        return new Response(json_encode($data), 200, array('content-type' => 'application/json'));
+        return new Response(json_encode($data), $statusCode, array('content-type' => 'application/json'));
     }
 
     /**

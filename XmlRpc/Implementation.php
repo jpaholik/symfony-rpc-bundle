@@ -24,6 +24,7 @@ use Seven\RpcBundle\Rpc\Method\MethodReturn;
 use Seven\RpcBundle\XmlRpc\ValueType\AbstractType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Seven\RpcBundle\Rpc\Server;
 
 class Implementation extends BaseImplementation
 {
@@ -116,12 +117,13 @@ class Implementation extends BaseImplementation
     }
 
     /**
-     * @param  MethodResponse                                   $response
-     * @throws \Seven\RpcBundle\Exception\UnknownMethodResponse
+     * @param  MethodResponse $response
+     * @param int $statusCode
      * @return Response
+     * @throws UnknownMethodResponse
      */
 
-    public function createHttpResponse(MethodResponse $response)
+    public function createHttpResponse(MethodResponse $response, $statusCode = Server::HTTP_SUCCESS_STATUS)
     {
         $document = new \DOMDocument("1.0", "UTF-8");
         $document->appendChild($responseEl = $document->createElement("methodResponse"));
@@ -140,7 +142,7 @@ class Implementation extends BaseImplementation
             throw new UnknownMethodResponse("Unknown MethodResponse instance");
         }
 
-        return new Response($document->saveXML(), 200, array('content-type' => 'text/xml'));
+        return new Response($document->saveXML(), $statusCode, array('content-type' => 'text/xml'));
     }
 
     /**

@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class Server implements ServerInterface
 {
+    const HTTP_SUCCESS_STATUS = 200;
+
     protected $impl;
     protected $handlers;
 
@@ -61,6 +63,7 @@ class Server implements ServerInterface
         try {
             $methodCall = $this->impl->createMethodCall($request);
             $methodResponse = $this->_handle($methodCall);
+            $exceptionStatus = self::HTTP_SUCCESS_STATUS;
         } catch (\Exception $e) {
 
             // log exception
@@ -69,15 +72,17 @@ class Server implements ServerInterface
             }
 
             $methodResponse = new MethodFault($e);
+            $exceptionStatus = method_exists($e, 'getHttpStatusCode') ? $e->getHttpStatusCode() : Implementation::BAD_REQUEST_STATUS_CODE;
         }
-
-        return $this->impl->createHttpResponse($methodResponse);
+        return $this->impl->createHttpResponse($methodResponse, $exceptionStatus);
     }
 
     /**
      * @param MethodCall $methodCall
      *
      * @return MethodResponse
+     * @throws MethodNotExists
+     * @throws InvalidParameters
      */
     protected function _handle(MethodCall $methodCall)
     {
@@ -97,6 +102,7 @@ class Server implements ServerInterface
      * @throws MethodNotExists
      *
      * @return mixed
+     * @throws InvalidParameters
      */
     public function call($method, $parameters)
     {
@@ -129,7 +135,7 @@ class Server implements ServerInterface
      * Prepare parameters.
      *
      * @param callable $callback
-     * @param array    $parameters
+     * @param array $parameters
      *
      * @return array
      *
@@ -151,7 +157,7 @@ class Server implements ServerInterface
         ) {
             throw new InvalidParameters(
                 sprintf('Invalid number of parameters. %d given but %d are required of %d total.',
-                $paramCount, $refl->getNumberOfRequiredParameters(), $refl->getNumberOfParameters())
+                    $paramCount, $refl->getNumberOfRequiredParameters(), $refl->getNumberOfParameters())
             );
         }
 

@@ -24,7 +24,6 @@ use Seven\RpcBundle\Rpc\Method\MethodReturn;
 use Seven\RpcBundle\XmlRpc\ValueType\AbstractType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Seven\RpcBundle\Rpc\Server;
 
 class Implementation extends BaseImplementation
 {

@@ -15,7 +15,6 @@ use Seven\RpcBundle\Rpc\Method\MethodCall;
 use Seven\RpcBundle\Rpc\Method\MethodResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Seven\RpcBundle\Rpc\Server;
 
 // @codeCoverageIgnoreStart
 abstract class Implementation

@@ -156,7 +156,7 @@ class Implementation extends BaseImplementation
                 throw new InvalidJsonRpcContent('The JSON-RPC fault code is not passed');
             }
 
-            $exception = new Fault($data['error']['message'], $data['error']['code']);
+            $exception = new Fault($data['error']['message'], $data['error']['code'], $response->getStatusCode());
             if (isset($data['error']['data'])) {
                 $exception->setData($data['error']['data']);
             }
